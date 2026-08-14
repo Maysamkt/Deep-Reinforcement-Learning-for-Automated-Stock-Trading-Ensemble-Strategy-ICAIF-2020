@@ -1,23 +1,19 @@
-# Model Building Requirements
-numpy==1.16.4
-pandas==1.0.3
-stockstats
-scikit-learn==0.21.0
-gym==0.15.3
-stable-baselines[mpi]
-tensorflow==1.15.4
+# PyTorch e Deep Reinforcement Learning
+torch>=2.0.0,<2.4.0
+stable-baselines3>=2.0.0,<2.4.0
+gymnasium>=0.28.1,<1.0.0
 
-joblib==0.15.1
+# Processamento e Manipulação de Dados
+numpy>=1.24.0,<2.0.0
+pandas>=1.5.0,<2.3.0
+scipy>=1.10.0,<1.14.0
+scikit-learn>=1.2.0,<1.5.0
+stockstats>=0.4.0,<0.6.0
 
-# plot
-matplotlib==3.2.1
+# Visualização e Métricas de Portfólio
+matplotlib>=3.5.0,<3.9.0
+pyfolio-reloaded>=0.5.1
 
-# testing requirements
-pytest>=5.3.2,<6.0.0
-
-# packaging
-setuptools>=41.4.0,<42.0.0
-wheel>=0.33.6,<0.34.0
-
-
-
+# Ferramentas de Suporte e Testes
+joblib>=1.2.0
+pytest>=7.0.0

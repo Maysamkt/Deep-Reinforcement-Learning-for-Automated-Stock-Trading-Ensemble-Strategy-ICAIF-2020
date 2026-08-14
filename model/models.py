@@ -2,20 +2,13 @@
 import pandas as pd
 import numpy as np
 import time
-import gym
+import gymnasium as gym
 
-# RL models from stable-baselines
-from stable_baselines import GAIL, SAC
-from stable_baselines import ACER
-from stable_baselines import PPO2
-from stable_baselines import A2C
-from stable_baselines import DDPG
-from stable_baselines import TD3
+# RL models from stable-baselines3
+from stable_baselines3 import A2C, PPO, DDPG, SAC, TD3
+from stable_baselines3.common.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise
+from stable_baselines3.common.vec_env import DummyVecEnv
 
-from stable_baselines.ddpg.policies import DDPGPolicy
-from stable_baselines.common.policies import MlpPolicy, MlpLstmPolicy, MlpLnLstmPolicy
-from stable_baselines.common.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise, AdaptiveParamNoiseSpec
-from stable_baselines.common.vec_env import DummyVecEnv
 from preprocessing.preprocessors import *
 from config import config
 
@@ -29,17 +22,16 @@ def train_A2C(env_train, model_name, timesteps=25000):
     """A2C model"""
 
     start = time.time()
-    model = A2C('MlpPolicy', env_train, verbose=0)
-    model.learn(total_timesteps=timesteps)
-    end = time.time()
-
-    model.save(f"{config.TRAINED_MODEL_DIR}/{model_name}")
-    print('Training time (A2C): ', (end - start) / 60, ' minutes')
-    return model
-
-def train_ACER(env_train, model_name, timesteps=25000):
-    start = time.time()
-    model = ACER('MlpPolicy', env_train, verbose=0)
+    model = A2C(
+        'MlpPolicy',
+        env_train,
+        verbose=0,
+        ent_coef=0.01,
+        vf_coef=0.25,
+        gamma=0.99,
+        learning_rate=7e-4,
+        policy_kwargs=dict(net_arch=dict(pi=[64, 64], vf=[64, 64]))
+    )
     model.learn(total_timesteps=timesteps)
     end = time.time()
 
@@ -53,45 +45,48 @@ def train_DDPG(env_train, model_name, timesteps=10000):
 
     # add the noise objects for DDPG
     n_actions = env_train.action_space.shape[-1]
-    param_noise = None
-    action_noise = OrnsteinUhlenbeckActionNoise(mean=np.zeros(n_actions), sigma=float(0.5) * np.ones(n_actions))
+    action_noise = OrnsteinUhlenbeckActionNoise(
+        mean=np.zeros(n_actions),
+        sigma=float(0.5) * np.ones(n_actions)
+    )
 
     start = time.time()
-    model = DDPG('MlpPolicy', env_train, param_noise=param_noise, action_noise=action_noise)
+    model = DDPG(
+        'MlpPolicy',
+        env_train,
+        action_noise=action_noise,
+        buffer_size=50000,
+        batch_size=128,
+        tau=0.001,
+        policy_kwargs=dict(net_arch=dict(pi=[64, 64], qf=[64, 64])),
+        verbose=0
+    )
     model.learn(total_timesteps=timesteps)
     end = time.time()
 
     model.save(f"{config.TRAINED_MODEL_DIR}/{model_name}")
-    print('Training time (DDPG): ', (end-start)/60,' minutes')
+    print('Training time (DDPG): ', (end - start) / 60, ' minutes')
     return model
+
 
 def train_PPO(env_train, model_name, timesteps=50000):
     """PPO model"""
 
     start = time.time()
-    model = PPO2('MlpPolicy', env_train, ent_coef = 0.005, nminibatches = 8)
-    #model = PPO2('MlpPolicy', env_train, ent_coef = 0.005)
+    model = PPO(
+        'MlpPolicy',
+        env_train,
+        ent_coef=0.005,
+        n_steps=128,
+        batch_size=16,
+        n_epochs=4,
+        learning_rate=2.5e-4,
+        clip_range=0.2,
+        policy_kwargs=dict(net_arch=dict(pi=[64, 64], vf=[64, 64])),
+        verbose=0
+    )
 
     model.learn(total_timesteps=timesteps)
-    end = time.time()
-
-    model.save(f"{config.TRAINED_MODEL_DIR}/{model_name}")
-    print('Training time (PPO): ', (end - start) / 60, ' minutes')
-    return model
-
-def train_GAIL(env_train, model_name, timesteps=1000):
-    """GAIL Model"""
-    #from stable_baselines.gail import ExportDataset, generate_expert_traj
-    start = time.time()
-    # generate expert trajectories
-    model = SAC('MLpPolicy', env_train, verbose=1)
-    generate_expert_traj(model, 'expert_model_gail', n_timesteps=100, n_episodes=10)
-
-    # Load dataset
-    dataset = ExpertDataset(expert_path='expert_model_gail.npz', traj_limitation=10, verbose=1)
-    model = GAIL('MLpPolicy', env_train, dataset, verbose=1)
-
-    model.learn(total_timesteps=1000)
     end = time.time()
 
     model.save(f"{config.TRAINED_MODEL_DIR}/{model_name}")
@@ -164,7 +159,7 @@ def run_ensemble_strategy(df, unique_trade_date, rebalance_window, validation_wi
 
     # based on the analysis of the in-sample data
     #turbulence_threshold = 140
-    insample_turbulence = df[(df.datadate<20151000) & (df.datadate>=20090000)]
+    insample_turbulence = df[(df.datadate < 20151000) & (df.datadate >= 20090000)]
     insample_turbulence = insample_turbulence.drop_duplicates(subset=['datadate'])
     insample_turbulence_threshold = np.quantile(insample_turbulence.turbulence.values, .90)
 
@@ -182,14 +177,10 @@ def run_ensemble_strategy(df, unique_trade_date, rebalance_window, validation_wi
         # Tuning trubulence index based on historical data
         # Turbulence lookback window is one quarter
         end_date_index = df.index[df["datadate"] == unique_trade_date[i - rebalance_window - validation_window]].to_list()[-1]
-        start_date_index = end_date_index - validation_window*30 + 1
+        start_date_index = end_date_index - validation_window * 30 + 1
 
         historical_turbulence = df.iloc[start_date_index:(end_date_index + 1), :]
-        #historical_turbulence = df[(df.datadate<unique_trade_date[i - rebalance_window - validation_window]) & (df.datadate>=(unique_trade_date[i - rebalance_window - validation_window - 63]))]
-
-
         historical_turbulence = historical_turbulence.drop_duplicates(subset=['datadate'])
-
         historical_turbulence_mean = np.mean(historical_turbulence.turbulence.values)
 
         if historical_turbulence_mean > insample_turbulence_threshold:
@@ -221,8 +212,6 @@ def run_ensemble_strategy(df, unique_trade_date, rebalance_window, validation_wi
         ############## Training and Validation starts ##############
         print("======Model training from: ", 20090000, "to ",
               unique_trade_date[i - rebalance_window - validation_window])
-        # print("training: ",len(data_split(df, start=20090000, end=test.datadate.unique()[i-rebalance_window]) ))
-        # print("==============Model Training===========")
         print("======A2C Training========")
         model_a2c = train_A2C(env_train, model_name="A2C_30k_dow_{}".format(i), timesteps=30000)
         print("======A2C Validation from: ", unique_trade_date[i - rebalance_window - validation_window], "to ",
@@ -241,11 +230,11 @@ def run_ensemble_strategy(df, unique_trade_date, rebalance_window, validation_wi
 
         print("======DDPG Training========")
         model_ddpg = train_DDPG(env_train, model_name="DDPG_10k_dow_{}".format(i), timesteps=10000)
-        #model_ddpg = train_TD3(env_train, model_name="DDPG_10k_dow_{}".format(i), timesteps=20000)
         print("======DDPG Validation from: ", unique_trade_date[i - rebalance_window - validation_window], "to ",
               unique_trade_date[i - rebalance_window])
         DRL_validation(model=model_ddpg, test_data=validation, test_env=env_val, test_obs=obs_val)
         sharpe_ddpg = get_validation_sharpe(i)
+        print("DDPG Sharpe Ratio: ", sharpe_ddpg)
 
         ppo_sharpe_list.append(sharpe_ppo)
         a2c_sharpe_list.append(sharpe_a2c)
@@ -265,14 +254,12 @@ def run_ensemble_strategy(df, unique_trade_date, rebalance_window, validation_wi
 
         ############## Trading starts ##############
         print("======Trading from: ", unique_trade_date[i - rebalance_window], "to ", unique_trade_date[i])
-        #print("Used Model: ", model_ensemble)
         last_state_ensemble = DRL_prediction(df=df, model=model_ensemble, name="ensemble",
                                              last_state=last_state_ensemble, iter_num=i,
                                              unique_trade_date=unique_trade_date,
                                              rebalance_window=rebalance_window,
                                              turbulence_threshold=turbulence_threshold,
                                              initial=initial)
-        # print("============Trading Done============")
         ############## Trading ends ##############
 
     end = time.time()
