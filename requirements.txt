@@ -1,7 +1,7 @@
 # PyTorch e Deep Reinforcement Learning
 torch>=2.0.0
-stable-baselines3>=2.0.0,<2.5.0
-gymnasium>=0.28.1,<1.0.0
+stable-baselines3>=2.0.0
+gymnasium>=0.28.1
 
 # Processamento e Manipulação de Dados
 numpy>=1.24.0
@@ -12,7 +12,6 @@ stockstats>=0.4.0
 
 # Visualização e Métricas de Portfólio
 matplotlib>=3.5.0
-pyfolio-reloaded>=0.5.1
 
 # Ferramentas de Suporte e Testes
 joblib>=1.2.0
