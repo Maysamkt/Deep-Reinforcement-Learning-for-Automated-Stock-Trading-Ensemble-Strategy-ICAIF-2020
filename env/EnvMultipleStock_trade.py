@@ -213,7 +213,7 @@ class StockEnvTrade(gym.Env):
 
             self.state = [self.previous_state[0]] + \
                           self.data.adjcp.values.tolist() + \
-                          self.previous_state[(STOCK_DIM + 1):(STOCK_DIM * 2 + 1)] + \
+                          list(self.previous_state[(STOCK_DIM + 1):(STOCK_DIM * 2 + 1)]) + \
                           self.data.macd.values.tolist() + \
                           self.data.rsi.values.tolist()  + \
                           self.data.cci.values.tolist()  + \
