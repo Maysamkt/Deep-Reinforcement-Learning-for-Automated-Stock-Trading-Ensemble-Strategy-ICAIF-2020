@@ -71,6 +71,7 @@ def synthetic_df():
     # Indexado por data (como data_split retorna)
     df = df.sort_values(["datadate", "tic"]).reset_index(drop=True)
     df.index = df["datadate"]
+    df.index.name = None
     return df
 
 
