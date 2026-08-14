@@ -120,7 +120,7 @@ def DRL_prediction(df,
         obs_trade, rewards, dones, info = env_trade.step(action)
         if i == (len(trade_data.index.unique()) - 2):
             # print(env_test.render())
-            last_state = env_trade.render()
+            last_state = env_trade.envs[0].render()
 
     df_last_state = pd.DataFrame({'last_state': last_state})
     df_last_state.to_csv('results/last_state_{}_{}.csv'.format(name, i), index=False)
