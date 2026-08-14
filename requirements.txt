@@ -1,17 +1,17 @@
 # PyTorch e Deep Reinforcement Learning
-torch>=2.0.0,<2.4.0
-stable-baselines3>=2.0.0,<2.4.0
+torch>=2.0.0
+stable-baselines3>=2.0.0,<2.5.0
 gymnasium>=0.28.1,<1.0.0
 
 # Processamento e Manipulação de Dados
-numpy>=1.24.0,<2.0.0
-pandas>=1.5.0,<2.3.0
-scipy>=1.10.0,<1.14.0
-scikit-learn>=1.2.0,<1.5.0
-stockstats>=0.4.0,<0.6.0
+numpy>=1.24.0
+pandas>=1.5.0
+scipy>=1.10.0
+scikit-learn>=1.2.0
+stockstats>=0.4.0
 
 # Visualização e Métricas de Portfólio
-matplotlib>=3.5.0,<3.9.0
+matplotlib>=3.5.0
 pyfolio-reloaded>=0.5.1
 
 # Ferramentas de Suporte e Testes
